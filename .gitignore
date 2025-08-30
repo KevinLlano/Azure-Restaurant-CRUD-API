@@ -1,0 +1,70 @@
+# .NET build artifacts
+bin/
+obj/
+[Bb]uild/
+artifacts/
+[TestResults]/
+*.cache/
+*.pidb
+*.mdb
+*.opendb
+
+# Visual Studio / Rider
+.vs/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+_ReSharper*/
+*.DotSettings.user
+.idea/
+*.iml
+
+# Logs and coverage
+*.log
+Logs/
+coverage*/
+*.coverage
+*.coveragexml
+TestResult*/
+
+# Packages
+packages/
+*.nupkg
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Secrets and local config
+appsettings.json
+appsettings.*.local.json
+secrets.json
+secrets/*.json
+.env
+.env.*
+
+# Certificates / keys
+*.pfx
+*.snk
+*.key
+*.cer
+*.pem
+
+# Local databases
+*.mdf
+*.ldf
+*.ndf
+*.sqlite
+*.db
+
+# Publish profiles with user creds
+Properties/PublishProfiles/*.pubxml.user
+*.publishsettings
+
+# Azure Functions local settings (if present)
+local.settings.json
+
+# Keep EF Core migrations tracked
+!**/Migrations/**

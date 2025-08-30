@@ -50,7 +50,7 @@ From the project directory (`RestaurantAPI`):
   - `dotnet ef database update --context RestaurantDbContext`
 - If starting fresh (no migrations):
   - `dotnet ef migrations add InitialCreate --context RestaurantDbContext`
-  - `dotnet ef database update --context RestaurantDbContext`
+  - `dotton ef database update --context RestaurantDbContext`
 
 ## Run
 - `dotnet run`
@@ -89,6 +89,151 @@ If you previously used `EnsureCreated()` or want a clean slate:
 
 Using Git Bash:
 - `cd "/c/Projects/RestaurantAPI/RestaurantAPI" && dotnet ef database update && dotnet run`
+
+## Build this project from scratch (Visual Studio GUI)
+These steps work for either the "ASP.NET Core Web API" template or the "ASP.NET Core Web App (Model-View-Controller)" template. This project uses API controllers; the Web API template is recommended.
+
+1) Create the solution and project
+- File > New > Project > ASP.NET Core Web API
+- Framework: .NET 9
+- Enable Use controllers; Enable OpenAPI support
+
+2) Add EF Core packages
+- Project > Manage NuGet Packages
+  - Install `Microsoft.EntityFrameworkCore.SqlServer`
+  - Install `Microsoft.EntityFrameworkCore.Design`
+
+3) Add the connection string
+- In `appsettings.json` add:
+```
+"ConnectionStrings": {
+  "DevConnection": "Server=localhost\\SQLEXPRESS;Database=RestaurantDB;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True;"
+}
+```
+
+4) Create entity classes (Models folder)
+- Customer
+```
+public class Customer {
+  [Key] public int CustomerID { get; set; }
+  [Column(TypeName = "nvarchar(100)")][Required]
+  public string CustomerName { get; set; } = string.Empty;
+  public virtual ICollection<OrderMaster> Orders { get; set; } = new List<OrderMaster>();
+}
+```
+- FoodItem
+```
+public class FoodItem {
+  [Key] public int FoodItemId { get; set; }
+  [Column(TypeName = "nvarchar(100)")] public string FoodItemName { get; set; } = string.Empty;
+  public decimal Price { get; set; }
+}
+```
+- OrderMaster
+```
+public class OrderMaster {
+  [Key] public long OrderMasterId { get; set; }
+  [Column(TypeName = "nvarchar(75)")] public string OrderNumber { get; set; } = string.Empty;
+  public int CustomerId { get; set; }
+  public Customer Customer { get; set; } = null!;
+  [Column(TypeName = "nvarchar(10)")] public string PMethod { get; set; } = string.Empty;
+  public decimal GTotal { get; set; }
+  public List<OrderDetail> OrderDetails { get; set; } = new();
+  [NotMapped] public string DeletedOrderItemIds { get; set; } = string.Empty;
+}
+```
+- OrderDetail
+```
+public class OrderDetail {
+  [Key] public long OrderDetailId { get; set; }
+  public long OrderMasterId { get; set; }
+  public int FoodItemId { get; set; }
+  public FoodItem FoodItem { get; set; } = null!;
+  public decimal FoodItemPrice { get; set; }
+  public int Quantity { get; set; }
+}
+```
+
+5) Create the DbContext (Models/RestaurantDbContext.cs)
+```
+public class RestaurantDbContext : DbContext {
+  public RestaurantDbContext(DbContextOptions<RestaurantDbContext> options) : base(options) {}
+  public DbSet<Customer> Customers => Set<Customer>();
+  public DbSet<FoodItem> FoodItems => Set<FoodItem>();
+  public DbSet<OrderMaster> OrderMasters => Set<OrderMaster>();
+  public DbSet<OrderDetail> OrderDetails => Set<OrderDetail>();
+  protected override void OnModelCreating(ModelBuilder modelBuilder) {
+    modelBuilder.Entity<OrderMaster>()
+      .HasOne(om => om.Customer)
+      .WithMany(c => c.Orders)
+      .HasForeignKey(om => om.CustomerId)
+      .OnDelete(DeleteBehavior.Restrict);
+    modelBuilder.Entity<OrderDetail>()
+      .HasOne(od => od.FoodItem)
+      .WithMany()
+      .HasForeignKey(od => od.FoodItemId)
+      .OnDelete(DeleteBehavior.Restrict);
+    modelBuilder.Entity<OrderDetail>()
+      .HasOne<OrderMaster>()
+      .WithMany(om => om.OrderDetails)
+      .HasForeignKey(od => od.OrderMasterId)
+      .OnDelete(DeleteBehavior.Cascade);
+    modelBuilder.Entity<FoodItem>().Property(f => f.Price).HasColumnType("decimal(18,2)");
+    modelBuilder.Entity<OrderMaster>().Property(om => om.GTotal).HasColumnType("decimal(18,2)");
+    modelBuilder.Entity<OrderDetail>().Property(od => od.FoodItemPrice).HasColumnType("decimal(18,2)");
+  }
+}
+```
+
+6) Register DbContext (Program.cs)
+```
+builder.Services.AddDbContext<RestaurantDbContext>(options =>
+  options.UseSqlServer(builder.Configuration.GetConnectionString("DevConnection")));
+
+// after app = builder.Build();
+using (var scope = app.Services.CreateScope()) {
+  var db = scope.ServiceProvider.GetRequiredService<RestaurantDbContext>();
+  db.Database.Migrate();
+}
+```
+
+7) Add controllers (Controllers folder)
+- FoodItemController (basic CRUD)
+- CustomerController (GET list)
+
+8) Add and apply migrations
+- Tools > NuGet Package Manager > Package Manager Console
+  - `Add-Migration InitialCreate -Context RestaurantDbContext`
+  - `Update-Database -Context RestaurantDbContext`
+
+9) Run and test
+- Press F5 or `dotnet run`
+- Open Swagger at the printed URL and exercise endpoints
+
+## Build this project from scratch (CLI)
+1) Create the solution and project
+- `dotnet new sln -n RestaurantAPI`
+- `mkdir RestaurantAPI && cd RestaurantAPI`
+- `dotnet new webapi -n RestaurantAPI`
+- `dotnet sln .. add RestaurantAPI/RestaurantAPI.csproj`
+
+2) Add packages
+- `dotnet add package Microsoft.EntityFrameworkCore.SqlServer`
+- `dotnet add package Microsoft.EntityFrameworkCore.Design`
+
+3) Add connection string in `appsettings.json` (see above)
+
+4) Create Models and DbContext as shown above
+
+5) Register DbContext in `Program.cs` and call `Database.Migrate()` as shown above
+
+6) Create and apply migrations
+- `dotnet tool install --global dotnet-ef`
+- `dotnet ef migrations add InitialCreate --context RestaurantDbContext`
+- `dotnet ef database update --context RestaurantDbContext`
+
+7) Run
+- `dotnet run`
 
 ## Troubleshooting
 - "dotnet-ef not found":
