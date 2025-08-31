@@ -1,11 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using RestaurantAPI.Models;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o =>
+    {
+        o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    });
 
 // Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -36,7 +42,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Apply migrations on startup (development-friendly)
+// Apply migrations  on startup (development-friendly)
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<RestaurantDbContext>();
@@ -58,7 +64,7 @@ else
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+
 app.UseRouting();
 app.UseAuthorization();
 app.MapControllers();
