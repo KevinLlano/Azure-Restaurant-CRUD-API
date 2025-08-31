@@ -1,6 +1,6 @@
 # RestaurantAPI (.NET 9 + EF Core + SQL Server)
 
-A simple REST API for a restaurant domain: Customers, FoodItems, Orders (OrderMasters/OrderDetails). Uses EF Core code?first with migrations and SQL Server.
+A REST API for a restaurant domain: Customers, FoodItems, Orders (OrderMasters/OrderDetails). 
 
 ## Tech stack
 - .NET 9 SDK
@@ -20,20 +20,23 @@ A simple REST API for a restaurant domain: Customers, FoodItems, Orders (OrderMa
 - Project: `RestaurantAPI/RestaurantAPI.csproj`
 - DbContext: `Models/RestaurantDbContext.cs`
 - Entities: `Customer`, `FoodItem`, `OrderMaster`, `OrderDetail`
+- DTOs: `CustomerCreateDto`, `OrderCreateDto`, `OrderDetailCreateDto`
 
-## Configuration
+## DTOs (Data Transfer Objects)
+The API uses DTOs for clean data contracts:
+- **CustomerCreateDto**: For creating new customers with optional orders
+- **OrderCreateDto**: For creating new orders with order details
+- **OrderDetailCreateDto**: For individual order line items
+
+## Database Configuration
 Edit `RestaurantAPI/appsettings.json`:
 - ConnectionStrings.DevConnection (example for SQL Express):
   - `Server=localhost\SQLEXPRESS;Database=RestaurantDB;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True;`
 - Example for LocalDB:
   - `Server=(localdb)\MSSQLLocalDB;Database=RestaurantDB;Trusted_Connection=True;MultipleActiveResultSets=True;`
 
-`Program.cs` is configured to apply migrations automatically on startup in development:
-- `context.Database.Migrate();`
 
-> Do not mix `EnsureCreated()` with migrations on the same database.
-
-## Setup (first time)
+## QUICK START GUIDE
 From the project directory (`RestaurantAPI`):
 
 1) Restore and build
@@ -68,29 +71,8 @@ From the project directory (`RestaurantAPI`):
 - Orders
   - Explore in Swagger if `OrderController` is present.
 
-## Development workflow
-- Change models (e.g., add fields).
-- Add a migration:
-  - `dotnet ef migrations add AddSomeChange --context RestaurantDbContext`
-- Update the database:
-  - `dotnet ef database update --context RestaurantDbContext`
-
-## Reset database (dev only)
-If you previously used `EnsureCreated()` or want a clean slate:
-- `dotnet ef database drop --force --context RestaurantDbContext`
-- `dotnet ef database update --context RestaurantDbContext`
-
-## Git Bash in Visual Studio (optional)
-- Tools > Options > Environment > Terminal > Add:
-  - Name: `GitBash`
-  - Shell Location (preferred): `C:\\Program Files\\Git\\bin\\bash.exe`
-    - Alternative: `C:\\Program Files\\Git\\git-bash.exe`
-  - Arguments: `--login -i`
-
-Using Git Bash:
-- `cd "/c/Projects/RestaurantAPI/RestaurantAPI" && dotnet ef database update && dotnet run`
-
-## Build this project from scratch (Visual Studio GUI)
+  
+## DO IT YOURSELF GUIDE, STEP BY STEP (Visual Studio 2022)
 These steps work for either the "ASP.NET Core Web API" template or the "ASP.NET Core Web App (Model-View-Controller)" template. This project uses API controllers; the Web API template is recommended.
 
 1) Create the solution and project
@@ -201,41 +183,42 @@ using (var scope = app.Services.CreateScope()) {
 - FoodItemController (basic CRUD)
 - CustomerController (GET list)
 
-8) Add and apply migrations
+8) Create DTOs (DTOs folder)
+- CustomerCreateDto
+```
+public class CustomerCreateDto {
+  [Required] public string CustomerName { get; set; } = string.Empty;
+  public List<OrderCreateDto>? Orders { get; set; }
+}
+```
+- OrderCreateDto
+```
+public class OrderCreateDto {
+  [Required] public string OrderNumber { get; set; } = string.Empty;
+  public string PMethod { get; set; } = string.Empty;
+  public List<OrderDetailCreateDto> OrderDetails { get; set; } = new();
+}
+```
+- OrderDetailCreateDto
+```
+public class OrderDetailCreateDto {
+  public int FoodItemId { get; set; }
+  public int Quantity { get; set; }
+  public decimal FoodItemPrice { get; set; }
+}
+```
+
+9) Add and apply migrations
 - Tools > NuGet Package Manager > Package Manager Console
   - `Add-Migration InitialCreate -Context RestaurantDbContext`
   - `Update-Database -Context RestaurantDbContext`
 
-9) Run and test
+10) Run and test
 - Press F5 or `dotnet run`
 - Open Swagger at the printed URL and exercise endpoints
 
-## Build this project from scratch (CLI)
-1) Create the solution and project
-- `dotnet new sln -n RestaurantAPI`
-- `mkdir RestaurantAPI && cd RestaurantAPI`
-- `dotnet new webapi -n RestaurantAPI`
-- `dotnet sln .. add RestaurantAPI/RestaurantAPI.csproj`
 
-2) Add packages
-- `dotnet add package Microsoft.EntityFrameworkCore.SqlServer`
-- `dotnet add package Microsoft.EntityFrameworkCore.Design`
-
-3) Add connection string in `appsettings.json` (see above)
-
-4) Create Models and DbContext as shown above
-
-5) Register DbContext in `Program.cs` and call `Database.Migrate()` as shown above
-
-6) Create and apply migrations
-- `dotnet tool install --global dotnet-ef`
-- `dotnet ef migrations add InitialCreate --context RestaurantDbContext`
-- `dotnet ef database update --context RestaurantDbContext`
-
-7) Run
-- `dotnet run`
-
-## Troubleshooting
+## CHALLENGES / TROUBLESHOOTING
 - "dotnet-ef not found":
   - `dotnet tool install --global dotnet-ef` and restart terminal.
 - "Invalid object name 'FoodItems'":
@@ -251,6 +234,6 @@ using (var scope = app.Services.CreateScope()) {
   - If migrations are inconsistent, remove bad ones and recreate:
     - `dotnet ef migrations remove` (repeat until clean) or delete the `Migrations` folder (dev only), then add `InitialCreate` again.
 
-## Notes
+## NOTES
 - Project targets C# 13 / .NET 9.
 - Non-nullable strings in entities should be provided values when creating records (or mark them `required`/provide defaults).
