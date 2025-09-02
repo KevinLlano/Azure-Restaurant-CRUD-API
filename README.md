@@ -1,6 +1,6 @@
 # RestaurantAPI (.NET 9 + EF Core + SQL Server)
 
-A REST API for a restaurant domain: Customers, FoodItems, Orders (OrderMasters/OrderDetails). 
+Backend service for managing restaurant operations — customers, menu items, and orders — built with .NET 9 SDK, C# 13, ASP.NET Core Web API, Entity Framework Core (SqlServer, Design), SQL Server (Express/LocalDB), Swagger UI, EF Core CLI tools, and Git for version control. 
 
 ## Tech stack
 - .NET 9 SDK
